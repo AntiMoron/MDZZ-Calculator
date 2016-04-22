@@ -116,7 +116,7 @@ struct rule_match
             {
             case token_add:
                 return matched[0].getValue() + matched[2].getValue();
-            case token_sub:
+            case token_sub:  
                 return matched[0].getValue() - matched[2].getValue();
             case token_div:
                 return matched[0].getValue() / matched[2].getValue();

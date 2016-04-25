@@ -47,18 +47,18 @@ std::unordered_map<std::string, std::vector<std::string> > ruleMap {
 
 std::vector<std::string> split(const std::string& origin, const std::string& spliter)
 {
-	std::vector<std::string> result;
-	const char* csrc = origin.c_str();
+    std::vector<std::string> result;
+    const char* csrc = origin.c_str();
     char src[242];
     std::strcpy(src, csrc);
-	const char* sep = spliter.c_str();
-	char *p = strtok(src, sep);
-	while(p)
-	{
-	    result.push_back(p);
-	    p = strtok(NULL, sep);
-	}
-	return result;
+    const char* sep = spliter.c_str();
+    char *p = strtok(src, sep);
+    while(p)
+    {
+        result.push_back(p);
+        p = strtok(NULL, sep);
+    }
+    return result;
 }
 
 parser_token match_token(const std::string& token)
@@ -123,7 +123,8 @@ struct rule_match
             case token_mul:
                 return matched[0].getValue() * matched[2].getValue();
             default:
-                if(matched[0].matchedToken.tokenType == token_lpar && matched[2].matchedToken.tokenType == token_rpar)
+                if(matched[0].matchedToken.tokenType == token_lpar && 
+                    matched[2].matchedToken.tokenType == token_rpar)
                 {
                     return matched[1].getValue();
                 }
@@ -159,7 +160,7 @@ rule_match match(const std::string& ruleName, const std::vector<parser_token>& t
     if(!tokens.empty() && ruleName == tokens[0].tokenTypeName)
     {
         // printf("Matched!\n");
-        return {true, tokens[0].tokenTypeName, tokens[0],{},
+        return {true, tokens[0].tokenTypeName, tokens[0], {},
             std::vector<parser_token>(tokens.begin() + 1, tokens.end())};
     }
     for(const auto& rule: ruleMap[ruleName])
@@ -194,6 +195,32 @@ rule_match match(const std::string& ruleName, const std::vector<parser_token>& t
     // printf("Failed! %s \n",ruleName.c_str());
     return {false, "", {}, {}, {}};
 }
+// 返回交换完的根节点
+rule_match partiallyFix(rule_match& aMatch) 
+{
+    size_t matchedCount = aMatch.matched.size();
+    switch(matchedCount)
+    {
+    case 3: // 双目运算
+        if(aMatch.matched[1].matchedToken.tokenType == token_mul || 
+            aMatch.matched[1].matchedToken.tokenType == token_div ||
+            aMatch.matched[1].matchedToken.tokenType == token_add ||
+            aMatch.matched[1].matchedToken.tokenType == token_sub) // 需要处理结合性
+        {
+            if(aMatch.matched[2].matched.size() == 3 && 
+                aMatch.matched[2].matched[1].matchedToken.tokenType == aMatch.matched[1].matchedToken.tokenType)
+            {
+                auto subLeft = aMatch.matched[2].matched[0];
+                partiallyFix(aMatch.matched[2]);
+                std::swap(aMatch.matched[2], aMatch.matched[2].matched[1]);
+                return aMatch.matched[2];
+            }
+        }
+    default:
+        break;
+    }
+    return aMatch;
+}
 
 void eval(const std::string& str) 
 {
@@ -212,7 +239,9 @@ void eval(const std::string& str)
     // std::cout << "======================================================" << std::endl;
     if(matchResult.remainingTokens.empty())
     {
-        // matchResult.display();
+        matchResult.display();
+        matchResult = partiallyFix(matchResult);
+        matchResult.display();
         std::cout << "Result: " << matchResult.getValue() << std::endl;
     }
     else
@@ -227,11 +256,11 @@ void eval(const std::string& str)
 
 int main() 
 {
-    // eval("(11 + 3)");
-    char input[1024];
-    while(std::cout << ">> " && std::cin.getline(input, 1024))
-    {
-        eval(input);
-    }
+    eval("8 /4/2");
+    // char input[1024];
+    // while(std::cout << ">> " && std::cin.getline(input, 1024))
+    // {
+    //     eval(input);
+    // }
     return 0;
 }
